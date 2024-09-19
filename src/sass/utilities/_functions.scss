@@ -1,0 +1,43 @@
+@function radius($ts, $te, $be, $bs) {
+    @if $dir == ltr {
+        @return $ts $te $be $bs;
+    }
+    @else {
+        @return $te $ts $bs $be;
+    }
+}
+@each $state in map-keys($color-map) {
+    #{'.alert-'+$state} {
+      --#{$prefix}alert-color: var(--#{$prefix}#{$state}-text);
+      --#{$prefix}alert-bg: var(--#{$prefix}#{$state}-bg-subtle);
+      --#{$prefix}alert-border-color: var(--#{$prefix}#{$state}-border-subtle);
+      --#{$prefix}alert-link-color: var(--#{$prefix}#{$state}-text);
+    }
+}
+@each $name, $color in $color-map {
+    #{'.bg-'+$name} {
+        background: $color !important;
+    }
+    #{'.btn-'+$name} {
+        background: $color;
+        border-color: $color;
+        &:hover, &:focus, &:active {
+            background: rgba($color, 0.8);
+            border-color: $color;
+        }
+    }
+    #{'.btn-outline-'+$name} {
+        background: transparent;
+        border-color: $color;
+        color: $color;
+        &:hover, &:focus, &:active {
+            background: rgba($color, 0.8);
+            border-color: $color;
+            box-shadow: none;
+            outline: none;
+        }
+    }
+    #{'.text-'+$name} {
+        color: $color !important;
+    }
+}

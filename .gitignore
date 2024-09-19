@@ -1,0 +1,5 @@
+node_modules
+*.zip
+*.rar
+.DS_*
+backup*

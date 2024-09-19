@@ -1,0 +1,49 @@
+@mixin corners($radius) {
+	border-radius: $radius;
+	-webkit-border-radius: $radius;
+	-moz-border-radius: $radius;
+}
+@mixin lineClamp($line) {
+    display: -webkit-box;
+    -webkit-line-clamp: $line;
+    -webkit-box-orient: vertical;  
+    overflow: hidden;
+}
+
+@mixin size($width, $height: $width) {
+    width: $width;
+    height: $height;
+}
+
+@mixin hoverAnim() {
+    transition: all 300ms;
+}
+
+@mixin imgCircle($size, $circle: false) {
+    width: $size;
+    height: $size;
+    @if $circle {
+        border-radius: 50%;
+    }
+}
+
+@mixin triangle($size, $color, $direction) {
+    height: 0;
+    width: 0;
+
+    border-color: transparent;
+    border-style: solid;
+    border-width: $size;
+
+    @if $direction == up {
+        border-bottom-color: $color;
+    } @else if $direction == right {
+        border-left-color: $color;
+    } @else if $direction == down {
+        border-top-color: $color;
+    } @else if $direction == left {
+        border-right-color: $color;
+    } @else {
+        @error "Unknown direction #{$direction}.";
+    }
+}

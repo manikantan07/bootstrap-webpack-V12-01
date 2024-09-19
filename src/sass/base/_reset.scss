@@ -1,0 +1,67 @@
+body, html {
+	margin: 0;
+	direction: $dir;
+	min-height: 100%;
+	&[dir="rtl"] {
+		direction: rtl;
+		font-family: 'Cairo', sans-serif;
+	}
+}
+body {
+	font-size: 16px;
+	font-family: $font-primary;
+	font-weight: normal;
+	background: $white;
+	overflow-x: hidden;
+	html[dir="rtl"] & {
+		direction: rtl;
+		font-family: 'Cairo', sans-serif;
+	}
+	// @include media-breakpoint-between(xl, xxl) {
+	// 	background-color: red;
+	// }
+}
+.container-lg {
+	max-width: 1484px;
+}
+
+ul {
+	padding: 0;
+	margin: 0;
+}
+li {
+	list-style: none;
+}
+a {
+	@include hoverAnim();
+	text-decoration: none;
+	&:hover {
+		text-decoration: none;
+		@include hoverAnim();
+	}
+}
+// .text-start {
+// 	text-align: #{$left} !important;
+// }
+// .text-end {
+//     text-align: #{$right} !important;
+// }
+p, .btn,
+button, input, optgroup, select, textarea, .form-control, .form-select,
+.dropdown-menu, .navbar-brand, .page-nav {
+	font-size: 16px;
+}
+.form-control {
+	padding: 10px;
+}
+p, .h6 {
+	margin-bottom: 15px;
+}
+
+[class*=" icon-"]:before, [class^=icon-]:before {
+	margin: 0;
+}
+
+h1 {
+	@include rfs(50px, font-size);
+}

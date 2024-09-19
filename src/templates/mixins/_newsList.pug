@@ -1,0 +1,9 @@
+mixin newsHome(name, img, content, href, btnClass, btnName)
+    .col
+        .inner
+            h3=name
+            figure
+                img(src=img, alt="")
+            p=content
+            .list-footer
+                a(href=href class=btnClass)= btnName

@@ -1,0 +1,53 @@
+p, h6 {
+	a {
+		color: $primary;
+		&:hover {
+			color: $primary;
+			text-decoration: underline;
+		}
+	}
+}
+body {
+	background-color: lightblue;
+	.h2, .h3, .h4, .h5, .h6 {
+		font-weight: 500;
+	}
+}
+
+// $color-mode-type: data;
+
+// @include color-mode(dark) {
+//   p {
+//     color: var(--bs-primary-text);
+//     background-color: var(--bs-primary-bg-subtle);
+//   }
+// }
+
+.bro {
+	color: bisque;
+	margin: 10px;
+}
+
+.gg {
+	color: $black;;
+}
+
+.title-about {
+	font-size: 50px;
+}
+
+.new-header {
+	background-color: yellow;
+}
+
+.modal-title {
+	border-radius: 5px;
+	display: flex;
+	border: 1px solid red;
+}
+.about {
+	border: 1px solid red;
+	p {
+		font-size: 20px;
+	}
+}

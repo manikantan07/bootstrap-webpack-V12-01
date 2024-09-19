@@ -1,0 +1,10 @@
+include ../mixins/_newsList.pug
+include ../mixins/_menu.pug
+header header
+    +headerNav('page-header','class', 'Home', 'About', 'List', 'contact')
+section
+    .container
+        h1 Lorem ipsum dolor sit amet, consectetur adipisicing elit.
+        .row
+            +newsHome('List One','https://fakeimg.pl/250x100/ff0000/', 'Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', 'google.com', 'btn btn-primary', 'Read More')
+            +newsHome('List Two','https://fakeimg.pl/250x100/ff0000/', 'Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', 'google.com', 'btn btn-primary', 'Read More')

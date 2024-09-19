@@ -1,0 +1,28 @@
+.spot-holder {
+	position: relative;
+}
+.page-header {
+	position: absolute;
+	inset-inline: 0;
+	top: 0;
+}
+.page-nav {
+	.navbar-nav {
+		.nav-item {
+			padding-inline-start: 1.2rem;
+		}
+		.nav-link {
+			color: $white;
+			&.active, &:hover {
+				color: rgba($white, 0.8);
+			}
+			&.nav-search {
+				font-size: 2rem;
+			}
+			&.btn {
+				padding-block: 0.3rem;
+				padding-inline: 1.5rem;
+			}
+		}
+	}
+}
