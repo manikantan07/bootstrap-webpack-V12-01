@@ -3,17 +3,18 @@ import { promises as fs } from 'fs';
 import path from 'path';
 
 const basePath = 'dist/';
+const args = process.argv.slice(2);
 
 async function generateCriticalCss(file) {
     const srcPath = path.join(basePath, file);
     const backupPath = path.join(basePath, `backup_${file}`);
 
     try {
-        // Backup the original HTML file
-        await fs.copyFile(srcPath, backupPath);
-        console.log(`Backup of ${file} created.`);
+        await fs.access(srcPath);
 
-        // Generate and inline critical CSS
+        await fs.copyFile(srcPath, backupPath);
+        // console.log(`Backup created for ${file}`);
+
         await generate({
             inline: true,
             base: basePath,
@@ -22,24 +23,44 @@ async function generateCriticalCss(file) {
             width: 1300,
             height: 900
         });
-        console.log(`Critical CSS generated and inlined for ${file}`);
+
+        // console.log(`Critical CSS generated for ${file}`);
     } catch (err) {
-        // Restore backup if something went wrong
-        await fs.copyFile(backupPath, srcPath);
-        console.error(`Error generating Critical CSS for ${file}:`, err);
+        if (await fileExists(backupPath)) {
+            await fs.copyFile(backupPath, srcPath);
+            // console.error(`Error on ${file}. Restored from backup.`);
+        }
+        // console.error(`${file} error:`, err.message);
+    }
+}
+
+async function fileExists(p) {
+    try {
+        await fs.access(p);
+        return true;
+    } catch {
+        return false;
     }
 }
 
 async function runCritical() {
     try {
-        const files = await fs.readdir(basePath);
-        const htmlFiles = files.filter(file => file.endsWith('.html'));
+        let htmlFiles;
+
+        if (args.length === 0) {
+            const allFiles = await fs.readdir(basePath);
+            htmlFiles = allFiles.filter(file => file.endsWith('.html'));
+            // console.log(`Processing all HTML files in ${basePath}`);
+        } else {
+            htmlFiles = args;
+            // console.log(`Processing specified file(s): ${htmlFiles.join(', ')}`);
+        }
 
         for (const file of htmlFiles) {
             await generateCriticalCss(file);
         }
     } catch (err) {
-        console.error('Error processing HTML files:', err);
+        // console.error('Failed during execution:', err);
     }
 }
 
