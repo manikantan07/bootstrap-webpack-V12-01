@@ -1,67 +1,146 @@
-import { generate } from 'critical';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { JSDOM } from 'jsdom';
+import postcss from 'postcss';
+import cssnano from 'cssnano';
+import selectorParser from 'postcss-selector-parser';
 
 const basePath = 'dist/';
-const args = process.argv.slice(2);
+const htmlDir = basePath;
+const cssSourceDir = path.join(basePath, 'assets/_css/');
+const outputDir = path.join(basePath, 'assets/css/critical/');
+const manualCriticalPath = path.join(basePath, 'assets/css/critical.css');
 
-async function generateCriticalCss(file) {
-    const srcPath = path.join(basePath, file);
-    const backupPath = path.join(basePath, `backup_${file}`);
-
+async function ensureDir(dir) {
     try {
-        await fs.access(srcPath);
+        await fs.mkdir(dir, { recursive: true });
+    } catch (e) {}
+}
 
-        await fs.copyFile(srcPath, backupPath);
-        // console.log(`Backup created for ${file}`);
+function getUsedSelectorsFromSections(sections) {
+    const selectors = new Set();
 
-        await generate({
-            inline: true,
-            base: basePath,
-            src: file,
-            target: file,
-            width: 1300,
-            height: 900
+    sections.forEach(section => {
+        if (section.id) selectors.add(`#${section.id}`);
+        if (section.classList) section.classList.forEach(cls => selectors.add(`.${cls}`));
+        selectors.add(section.tagName.toLowerCase());
+
+        section.querySelectorAll('*').forEach(el => {
+            if (el.id) selectors.add(`#${el.id}`);
+            if (el.classList) el.classList.forEach(cls => selectors.add(`.${cls}`));
+            selectors.add(el.tagName.toLowerCase());
         });
+    });
 
-        // console.log(`Critical CSS generated for ${file}`);
-    } catch (err) {
-        if (await fileExists(backupPath)) {
-            await fs.copyFile(backupPath, srcPath);
-            // console.error(`Error on ${file}. Restored from backup.`);
+    return selectors;
+}
+
+function filterCssByUsedSelectors(cssAst, usedSelectors) {
+    cssAst.walkRules(rule => {
+        const matched = [];
+
+        for (const sel of rule.selectors) {
+            try {
+                let keep = false;
+                selectorParser(selectors => {
+                    selectors.walk(node => {
+                        if (
+                            (node.type === 'class' && usedSelectors.has(`.${node.value}`)) ||
+                            (node.type === 'id' && usedSelectors.has(`#${node.value}`)) ||
+                            (node.type === 'tag' && usedSelectors.has(node.value.toLowerCase()))
+                        ) {
+                            keep = true;
+                        }
+                    });
+                }).processSync(sel);
+
+                if (keep) matched.push(sel);
+            } catch {
+
+            }
         }
-        // console.error(`${file} error:`, err.message);
-    }
-}
 
-async function fileExists(p) {
-    try {
-        await fs.access(p);
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-async function runCritical() {
-    try {
-        let htmlFiles;
-
-        if (args.length === 0) {
-            const allFiles = await fs.readdir(basePath);
-            htmlFiles = allFiles.filter(file => file.endsWith('.html'));
-            // console.log(`Processing all HTML files in ${basePath}`);
+        if (matched.length > 0) {
+            rule.selectors = matched;
         } else {
-            htmlFiles = args;
-            // console.log(`Processing specified file(s): ${htmlFiles.join(', ')}`);
+            rule.remove();
+        }
+    });
+
+    return cssAst;
+}
+
+async function extractCriticalForPage(htmlFile) {
+    const htmlPath = path.join(htmlDir, htmlFile);
+    const pageName = path.basename(htmlFile, '.html');
+    let html = await fs.readFile(htmlPath, 'utf8');
+    const dom = new JSDOM(html);
+
+    const sections = [...dom.window.document.querySelectorAll('.critical-section')];
+
+    let manualMinified = '';
+    try {
+        const manualRaw = await fs.readFile(manualCriticalPath, 'utf8');
+        const result = await postcss([cssnano({ preset: ['default', { discardComments: { removeAll: true } }] })])
+            .process(manualRaw, { from: undefined });
+        manualMinified = result.css;
+    } catch (err) {
+        console.warn(`Could not load manual critical.css:`, err.message);
+    }
+
+    let sectionMinified = '';
+    if (sections.length > 0) {
+        const usedSelectors = getUsedSelectorsFromSections(sections);
+        const cssFiles = (await fs.readdir(cssSourceDir)).filter(f => f.endsWith('.css') && !f.includes('critical.css'));
+
+        let sectionCss = '';
+        for (const file of cssFiles) {
+            const filePath = path.join(cssSourceDir, file);
+            try {
+                const raw = await fs.readFile(filePath, 'utf8');
+                const parsed = postcss.parse(raw);
+                const filtered = filterCssByUsedSelectors(parsed, usedSelectors);
+                sectionCss += filtered.toString();
+            } catch (err) {
+                console.warn(`Failed to process ${file}:`, err.message);
+            }
         }
 
-        for (const file of htmlFiles) {
-            await generateCriticalCss(file);
-        }
-    } catch (err) {
-        // console.error('Failed during execution:', err);
+        const result = await postcss([cssnano({ preset: ['default', { discardComments: { removeAll: true } }] })])
+            .process(sectionCss, { from: undefined });
+        sectionMinified = result.css;
+    }
+
+    const finalCritical = `${manualMinified}${sectionMinified}`;
+    const styleBlock = `<!-- critical-start -->\n<style>${finalCritical}</style>\n<!-- critical-end -->`;
+
+    html = html.replace(/<!-- critical-start -->([\s\S]*?)<!-- critical-end -->/gi, '').trim();
+
+    const updatedHtml = html.replace(/<head[^>]*>/i, match => `${match}\n${styleBlock}`);
+
+    await fs.writeFile(htmlPath, updatedHtml, 'utf8');
+
+    const outputCssFile = path.join(outputDir, `${pageName}.critical.css`);
+    await fs.writeFile(outputCssFile, finalCritical, 'utf8');
+
+    console.log(`Injected critical CSS into: ${htmlFile}`);
+}
+
+async function run() {
+    await ensureDir(outputDir);
+
+    const args = process.argv.slice(2);
+    let htmlFiles = [];
+
+    if (args.length > 0) {
+        htmlFiles = args.filter(f => f.endsWith('.html'));
+    } else {
+        htmlFiles = (await fs.readdir(htmlDir)).filter(f => f.endsWith('.html'));
+    }
+
+    for (const file of htmlFiles) {
+        await extractCriticalForPage(file);
     }
 }
 
-runCritical();
+run();
