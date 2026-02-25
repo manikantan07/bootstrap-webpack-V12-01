@@ -1,3 +1,12 @@
+:root {
+  --innerWidth: 1440px;
+  --pad-inner: 12px;
+
+  @media (min-width: 992px) {
+    --pad-inner: 52px;
+  }
+}
+
 body, html {
 	margin: 0;
 	direction: $dir;
@@ -21,8 +30,13 @@ body {
 	// 	background-color: red;
 	// }
 }
-.container-lg {
-	max-width: 1484px;
+.container, .container-lg {
+	width: 100%;
+	max-width: 1440px;
+	margin-inline: auto;
+	inline-size: min(100% - var(--pad-inner) * 2, var(--innerWidth));
+	
+	container-type: inline-size;
 }
 
 ul {
@@ -63,5 +77,22 @@ p, .h6 {
 }
 
 h1 {
-	@include rfs(50px, font-size);
+	// @include fluid-steps(padding-inline-start, (32px, 42px, 52px));
+	// &.title-1 {
+	// 	font-size: fluid(30px, 50px, 320px, 1920px) !important;
+	// }
 }
+h1 {
+	@include fluid-steps(font-size,(32px, 42px, 52px, 70px));   
+	// @include fluid-steps(padding-inline-start, (42px, 32px, 52px));  
+	// @include fluid-steps(width,(20%, 50%, 80%, 100%));
+	@include fluid-steps(width, (20vw, 50vw, 80vw, 100vw));
+	max-width: 100%;
+	// @include fluid-steps(margin-inline-start, (10%, 5%, 15%));     
+	@include fluid-steps(padding-inline-start, (10vw, 5vw, 15vw));
+}
+// .title-1 {
+// 	// @include rfs(50px, font-size);
+// 	font-size: fluid(50px, 30px, 320px, 1200px);
+// 	line-height: 120%;
+// }

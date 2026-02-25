@@ -1,43 +1,256 @@
+@use "sass:math";
+
 @function radius($ts, $te, $be, $bs) {
-    @if $dir == ltr {
-        @return $ts $te $be $bs;
-    }
-    @else {
-        @return $te $ts $bs $be;
-    }
+  @if $dir ==ltr {
+    @return $ts $te $be $bs;
+  }
+
+  @else {
+    @return $te $ts $bs $be;
+  }
 }
+
 @each $state in map-keys($color-map) {
-    #{'.alert-'+$state} {
-      --#{$prefix}alert-color: var(--#{$prefix}#{$state}-text);
-      --#{$prefix}alert-bg: var(--#{$prefix}#{$state}-bg-subtle);
-      --#{$prefix}alert-border-color: var(--#{$prefix}#{$state}-border-subtle);
-      --#{$prefix}alert-link-color: var(--#{$prefix}#{$state}-text);
-    }
+  #{'.alert-'+$state} {
+    --#{$prefix}alert-color: var(--#{$prefix}#{$state}-text);
+    --#{$prefix}alert-bg: var(--#{$prefix}#{$state}-bg-subtle);
+    --#{$prefix}alert-border-color: var(--#{$prefix}#{$state}-border-subtle);
+    --#{$prefix}alert-link-color: var(--#{$prefix}#{$state}-text);
+  }
 }
+
 @each $name, $color in $color-map {
-    #{'.bg-'+$name} {
-        background: $color !important;
+  #{'.bg-'+$name} {
+    background: $color !important;
+  }
+
+  #{'.btn-'+$name} {
+    background: $color;
+    border-color: $color;
+
+    &:hover,
+    &:focus,
+    &:active {
+      background: rgba($color, 0.8);
+      border-color: $color;
     }
-    #{'.btn-'+$name} {
-        background: $color;
-        border-color: $color;
-        &:hover, &:focus, &:active {
-            background: rgba($color, 0.8);
-            border-color: $color;
-        }
+  }
+
+  #{'.btn-outline-'+$name} {
+    background: transparent;
+    border-color: $color;
+    color: $color;
+
+    &:hover,
+    &:focus,
+    &:active {
+      background: rgba($color, 0.8);
+      border-color: $color;
+      box-shadow: none;
+      outline: none;
     }
-    #{'.btn-outline-'+$name} {
-        background: transparent;
-        border-color: $color;
-        color: $color;
-        &:hover, &:focus, &:active {
-            background: rgba($color, 0.8);
-            border-color: $color;
-            box-shadow: none;
-            outline: none;
-        }
-    }
-    #{'.text-'+$name} {
-        color: $color !important;
-    }
+  }
+
+  #{'.text-'+$name} {
+    color: $color !important;
+  }
 }
+
+
+
+
+@function _num($v) {
+  @if type-of($v) != 'number' {
+    @error "_num(): expected number, got #{type-of($v)}";
+  }
+  @if unit($v) == ''   { @return $v; }
+  @if unit($v) == 'px' { @return math.div($v, 1px); }
+  @if unit($v) == 'vw' { @return math.div($v, 1vw); }
+  @error "_num(): unsupported unit '#{unit($v)}'. Use px or vw.";
+}
+
+@function _len($v) {
+  @if type-of($v) != 'number' {
+    @error "_len(): expected number, got #{type-of($v)}";
+  }
+  @return if(unit($v) == '', $v * 1px, $v);
+}
+
+@function _unit-type($v) {
+  $u: unit($v);
+  @if $u == 'px' { @return 'px'; }
+  @if $u == 'vw' { @return 'vw'; }
+  @if $u == '%'  { @return '%';  }
+  @return 'other';
+}
+
+
+@function fluid-value($min, $max, $vmin, $vmax) {
+  $uMin: _unit-type($min);
+  $uMax: _unit-type($max);
+
+  @if $uMin != $uMax {
+    @error "fluid-value(): $min and $max must share the same unit (got #{unit($min)} and #{unit($max)}).";
+  }
+
+  @if $uMin == '%' {
+    @error "fluid-value(): % units cannot be used for fluid interpolation.\n\n% is parent-relative but the slope must scale with the viewport — these are different coordinate spaces and clamp() cannot compare them.\n\nUse instead:\n  vw : @include fluid-steps(width, (20vw, 50vw, 80vw, 100vw));\n  px : @include fluid-steps(width, (288px, 720px, 1152px, 1440px));\n  stepped % (no fluid):\n    width: 20%;\n    @media (min-width: 768px)  { width: 50%; }\n    @media (min-width: 1200px) { width: 80%; }\n    @media (min-width: 1920px) { width: 100%; }";
+  }
+
+  @if $uMin == 'other' {
+    @error "fluid-value(): unsupported unit '#{unit($min)}'. Use px or vw.";
+  }
+
+  $v1: math.div(_len($vmin), 1px);
+  $v2: math.div(_len($vmax), 1px);
+
+  @if $v1 == $v2 {
+    @error "fluid-value(): vmin and vmax must differ.";
+  }
+
+  @if $uMin == 'px' {
+    $minN: math.div($min, 1px);
+    $maxN: math.div($max, 1px);
+
+    $m:   math.div(($maxN - $minN), ($v2 - $v1));
+    $b:   $minN - $m * $v1;
+    $loN: math.min($minN, $maxN);
+    $hiN: math.max($minN, $maxN);
+
+    $lo-px: $loN * 1px;
+    $hi-px: $hiN * 1px;
+    $b-px:  $b   * 1px;
+
+    @return clamp(#{$lo-px}, calc(#{$b-px} + #{$m * 100}vw), #{$hi-px});
+  }
+
+  @else if $uMin == 'vw' {
+    $minN: math.div($min, 1vw);
+    $maxN: math.div($max, 1vw);
+
+    $m:   math.div(($maxN - $minN), ($v2 - $v1));
+    $b:   $minN - $m * $v1;
+    $loN: math.min($minN, $maxN);
+    $hiN: math.max($minN, $maxN);
+
+    $lo-vw: $loN * 1vw;
+    $hi-vw: $hiN * 1vw;
+    $b-vw:  $b   * 1vw;
+
+    @return clamp(#{$lo-vw}, calc(#{$b-vw} + #{$m * 100}vw), #{$hi-vw});
+  }
+}
+
+
+@mixin _fluid-steps-one($prop, $vals, $bps) {
+  $nVals: length($vals);
+  $nBps:  length($bps);
+
+  @if $nVals < 2 or $nVals > 4 {
+    @error "fluid-steps(): $vals must have 2–4 values, got #{$nVals}.";
+  }
+  @if $nBps < 2 {
+    @error "fluid-steps(): $bps must have ≥2 breakpoints, got #{$nBps}.";
+  }
+
+  $bp1: _len(nth($bps, 1));
+  $bpL: _len(nth($bps, $nBps));
+
+  @if math.div($bp1, 1px) >= math.div($bpL, 1px) {
+    @error "fluid-steps(): breakpoints must be strictly ascending.";
+  }
+
+  @if $nVals == 2 {
+    $v1: nth($vals, 1);
+    $v2: nth($vals, 2);
+    #{$prop}: fluid-value($v1, $v2, $bp1, $bpL);
+  }
+
+  @else if $nVals == 3 {
+    $v1: nth($vals, 1);
+    $v2: nth($vals, 2);
+    $v3: nth($vals, 3);
+
+    $bpM: _len(
+      if(
+        $nBps >= 3,
+        nth($bps, 2),
+        math.div((math.div($bp1, 1px) + math.div($bpL, 1px)), 2) * 1px
+      )
+    );
+
+    #{$prop}: fluid-value($v1, $v2, $bp1, $bpM);
+
+    @media (min-width: #{$bpM}) {
+      #{$prop}: fluid-value($v2, $v3, $bpM, $bpL);
+    }
+  }
+
+  @else {
+    @if $nBps < 4 {
+      @error "fluid-steps(): 4 values need ≥4 breakpoints (got #{$nBps}).";
+    }
+
+    $v1: nth($vals, 1);
+    $v2: nth($vals, 2);
+    $v3: nth($vals, 3);
+    $v4: nth($vals, 4);
+
+    $bp2: _len(nth($bps, 2));
+    $bp3: _len(nth($bps, 3));
+
+    #{$prop}: fluid-value($v1, $v2, $bp1, $bp2);
+
+    @media (min-width: #{$bp2}) {
+      #{$prop}: fluid-value($v2, $v3, $bp2, $bp3);
+    }
+
+    @media (min-width: #{$bp3}) {
+      #{$prop}: fluid-value($v3, $v4, $bp3, $bpL);
+    }
+  }
+}
+
+
+@mixin fluid-steps(
+  $props,                                     
+  $vals,                                      
+  $bps: (320px, 768px, 1200px, 1920px)       
+) {
+  $props-list: if(type-of($props) == 'list', $props, ($props,));
+
+  @each $prop in $props-list {
+    @include _fluid-steps-one($prop, $vals, $bps);
+  }
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// USAGE EXAMPLES
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// px — font size, spacing, gaps
+//   @include fluid-steps(font-size, (32px, 42px, 52px));
+//   @include fluid-steps(padding-inline-start, (42px, 32px, 52px));  // non-monotonic ✓
+//   @include fluid-steps(font-size, (24px, 32px, 42px, 52px));       // 4 steps
+//
+// px — width mapped to 1440px container
+//   20% of 1440 = 288px
+//   50% of 1440 = 720px
+//   80% of 1440 = 1152px
+//   100% of 1440 = 1440px
+//   @include fluid-steps(width, (288px, 720px, 1152px, 1440px));
+//
+// vw — viewport-relative width ✓
+//   @include fluid-steps(width, (20vw, 50vw, 80vw, 100vw));
+//
+// multiple props
+//   @include fluid-steps((font-size, line-height), (32px, 52px));
+//
+// custom breakpoints
+//   @include fluid-steps(font-size, (32px, 52px), (375px, 1440px));
+//
+// ❌ % throws a helpful build-time error
+//   @include fluid-steps(width, (20%, 50%, 80%, 100%));
+//
+// ─────────────────────────────────────────────────────────────────────────────

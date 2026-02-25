@@ -1,15 +1,23 @@
-p, h6 {
+p,
+h6 {
 	a {
 		color: $primary;
+
 		&:hover {
 			color: $primary;
 			text-decoration: underline;
 		}
 	}
 }
+
 body {
-	background-color: lightblue;
-	.h2, .h3, .h4, .h5, .h6 {
+
+	// background-color: lightblue;
+	.h2,
+	.h3,
+	.h4,
+	.h5,
+	.h6 {
 		font-weight: 500;
 	}
 }
@@ -29,7 +37,8 @@ body {
 }
 
 .gg {
-	color: $black;;
+	color: $black;
+	;
 }
 
 .title-about {
@@ -45,9 +54,27 @@ body {
 	display: flex;
 	border: 1px solid red;
 }
+
 .about {
 	border: 1px solid red;
+
 	p {
 		font-size: 20px;
+	}
+}
+
+.section {
+	// padding-block: fluid-steps(24px, 100px);
+	// margin-block: fluid-steps(24px, 100px);
+	@include fluid-steps(padding-block, (32px, 42px, 52px));
+	@include fluid-steps(margin-block, (32px, 42px, 52px));
+	background-color: #ccc;
+
+	h1 {
+		@include fluid-steps(font-size, (30px, 40px, 50px, 70px));
+	}
+
+	p {
+		@include fluid-steps(font-size, (18px, 24px));
 	}
 }
